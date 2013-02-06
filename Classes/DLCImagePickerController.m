@@ -48,8 +48,26 @@
 {
     [super viewDidLoad];
     self.wantsFullScreenLayout = YES;
-    // localized titles
+    
+    //orientation
+    self.photoCaptureButton.imageView.clipsToBounds = NO;
+    self.photoCaptureButton.imageView.contentMode = UIViewContentModeCenter;
+    self.cancelButton.imageView.clipsToBounds = NO;
+    self.cancelButton.imageView.contentMode = UIViewContentModeCenter;
+    self.cameraToggleButton.imageView.clipsToBounds = NO;
+    self.cameraToggleButton.imageView.contentMode = UIViewContentModeCenter;
+    self.blurToggleButton.imageView.clipsToBounds = NO;
+    self.blurToggleButton.imageView.contentMode = UIViewContentModeCenter;
+    self.libraryToggleButton.imageView.clipsToBounds = NO;
+    self.libraryToggleButton.imageView.contentMode = UIViewContentModeCenter;
+    self.flashToggleButton.imageView.clipsToBounds = NO;
+    self.flashToggleButton.imageView.contentMode = UIViewContentModeCenter;
+    self.retakeButton.imageView.clipsToBounds = NO;
+    self.retakeButton.imageView.contentMode = UIViewContentModeCenter;
+
+    //localized titles
     [self.retakeButton setTitle:NSLocalizedString(@"Retake", @"DLCImagePickerController retake button title") forState:UIControlStateNormal];
+    
     //set background color
     self.view.backgroundColor = [UIColor colorWithPatternImage:
                                  [UIImage imageNamed:@"micro_carbon"]];
@@ -58,6 +76,7 @@
                                      [UIImage imageNamed:@"photo_bar"]];
     
     self.topBar.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"photo_bar"]];
+    
     //button states
     [self.blurToggleButton setSelected:NO];
     [self.filtersToggleButton setSelected:NO];
@@ -89,9 +108,89 @@
     });
 }
 
+-(void) viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+    [self layoutInterface];
+    [self layoutFilters];
+}
+
 -(void) viewWillAppear:(BOOL)animated {
     [[UIApplication sharedApplication] setStatusBarHidden:YES withAnimation:UIStatusBarAnimationSlide];
     [super viewWillAppear:animated];
+}
+
+-(void) layoutInterface {
+    
+    switch (self.interfaceOrientation) {
+        case UIInterfaceOrientationPortrait:
+        case UIInterfaceOrientationPortraitUpsideDown:
+            self.view.transform = CGAffineTransformIdentity;
+            self.view.frame = [[UIScreen mainScreen] applicationFrame];
+            break;
+            
+        case UIInterfaceOrientationLandscapeLeft:
+        case UIInterfaceOrientationLandscapeRight: {
+            self.view.transform = CGAffineTransformIdentity;
+            CGRect frame = [[UIScreen mainScreen] applicationFrame];
+            self.view.frame = CGRectMake(frame.origin.y, frame.origin.x, frame.size.width, frame.size.height);
+            break;
+        }
+    }
+}
+
+-(void) layoutFilters {
+    
+    if ([self.filtersToggleButton isSelected]) {
+        self.imageView.frame = CGRectMake(0, ((CGRectGetHeight(self.view.bounds) - 320) / 2) - ((116 - 44) / 2), 320, 320);
+        self.filterScrollView.frame = CGRectMake(0, CGRectGetHeight(self.view.bounds) - 116, 320, 75);
+        self.filtersBackgroundImageView.frame = CGRectMake(-12, CGRectGetHeight(self.view.bounds) - 116, 344, 75);
+    } else {
+        self.imageView.frame = CGRectMake(0, ((CGRectGetHeight(self.view.bounds) - 320) / 2), 320, 320);
+        self.filterScrollView.frame = CGRectMake(0, CGRectGetHeight(self.view.bounds) - 42, 320, 75);
+        self.filtersBackgroundImageView.frame = CGRectMake(-12, CGRectGetHeight(self.view.bounds) - 42, 344, 75);
+    }
+}
+
+-(CGAffineTransform) transformForInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
+    CGAffineTransform transform;
+    switch (interfaceOrientation) {
+        case UIInterfaceOrientationPortrait:
+            transform = CGAffineTransformIdentity;
+            break;
+        case UIInterfaceOrientationLandscapeRight:
+            transform = CGAffineTransformMakeRotation(90.0f * (M_PI / 180.0f));
+            break;
+        case UIInterfaceOrientationPortraitUpsideDown:
+            transform = CGAffineTransformMakeRotation(180.0f * (M_PI / 180.0f));
+            break;
+        case UIInterfaceOrientationLandscapeLeft:
+            transform = CGAffineTransformMakeRotation(270.0f * (M_PI / 180.0f));
+            break;
+    }
+    
+    return transform;
+}
+
+-(void) updateButtonsTransform {
+    
+    CGAffineTransform transform = [self transformForInterfaceOrientation:self.interfaceOrientation];
+    self.photoCaptureButton.imageView.transform = transform;
+    self.cancelButton.imageView.transform = transform;
+    self.cameraToggleButton.imageView.transform = transform;
+    self.blurToggleButton.imageView.transform = transform;
+    self.libraryToggleButton.imageView.transform = transform;
+    self.flashToggleButton.imageView.transform = transform;
+    self.retakeButton.imageView.transform = transform;
+}
+
+-(void) updateImageViewTransform {
+    
+    if (staticPicture == nil) {
+        self.imageView.transform = CGAffineTransformIdentity;
+    } else {
+        CGAffineTransform transform = [self transformForInterfaceOrientation:self.interfaceOrientation];
+        self.imageView.transform = transform;
+    }
 }
 
 -(void) loadFilters {
@@ -126,7 +225,6 @@
 	}
 	[self.filterScrollView setContentSize:CGSizeMake(10 + 10*(60+10), 75.0)];
 }
-
 
 -(void) setUpCamera {
     
@@ -382,6 +480,8 @@
     if(![self.filtersToggleButton isSelected]){
         [self showFilters];
     }
+    
+    [self updateImageViewTransform];
 }
 
 -(IBAction) takePhoto:(id)sender{
@@ -407,10 +507,18 @@
         
         [staticPicture processImage];
         
-        UIImage *currentFilteredVideoFrame = [processUpTo imageFromCurrentlyProcessedOutputWithOrientation:staticPictureOriginalOrientation];
-
+        UIImage *image = [processUpTo imageFromCurrentlyProcessedOutputWithOrientation:staticPictureOriginalOrientation];
+        
+        if (staticPictureOriginalOrientation != UIImageOrientationUp) {
+            UIGraphicsBeginImageContextWithOptions(image.size, YES, 1.0);
+            [image drawInRect:CGRectMake(0, 0, image.size.width, image.size.height)];
+            image = UIGraphicsGetImageFromCurrentImageContext();
+            UIGraphicsEndImageContext();
+        }
+        
         NSDictionary *info = [[NSDictionary alloc] initWithObjectsAndKeys:
-                              UIImageJPEGRepresentation(currentFilteredVideoFrame, self.outputJPEGQuality), @"data", nil];
+                              image, @"image",
+                              UIImageJPEGRepresentation(image, self.outputJPEGQuality), @"data", nil];
         [self.delegate imagePickerController:self didFinishPickingMediaWithInfo:info];
     }
 }
@@ -440,6 +548,8 @@
     
     [self setFilter:selectedFilter];
     [self prepareFilter];
+    
+    [self updateImageViewTransform];
 }
 
 -(IBAction) cancel:(id)sender {
@@ -550,13 +660,6 @@
 -(void) showFilters {
     [self.filtersToggleButton setSelected:YES];
     self.filtersToggleButton.enabled = NO;
-    CGRect imageRect = self.imageView.frame;
-    imageRect.origin.y -= 34;
-    CGRect sliderScrollFrame = self.filterScrollView.frame;
-    sliderScrollFrame.origin.y -= self.filterScrollView.frame.size.height;
-    CGRect sliderScrollFrameBackground = self.filtersBackgroundImageView.frame;
-    sliderScrollFrameBackground.origin.y -=
-    self.filtersBackgroundImageView.frame.size.height-3;
     
     self.filterScrollView.hidden = NO;
     self.filtersBackgroundImageView.hidden = NO;
@@ -564,10 +667,8 @@
                           delay:0.05
                         options: UIViewAnimationCurveEaseOut
                      animations:^{
-                         self.imageView.frame = imageRect;
-                         self.filterScrollView.frame = sliderScrollFrame;
-                         self.filtersBackgroundImageView.frame = sliderScrollFrameBackground;
-                     } 
+                         [self layoutFilters];
+                     }
                      completion:^(BOOL finished){
                          self.filtersToggleButton.enabled = YES;
                      }];
@@ -575,22 +676,13 @@
 
 -(void) hideFilters {
     [self.filtersToggleButton setSelected:NO];
-    CGRect imageRect = self.imageView.frame;
-    imageRect.origin.y += 34;
-    CGRect sliderScrollFrame = self.filterScrollView.frame;
-    sliderScrollFrame.origin.y += self.filterScrollView.frame.size.height;
-    
-    CGRect sliderScrollFrameBackground = self.filtersBackgroundImageView.frame;
-    sliderScrollFrameBackground.origin.y += self.filtersBackgroundImageView.frame.size.height-3;
     
     [UIView animateWithDuration:0.10
                           delay:0.05
                         options: UIViewAnimationCurveEaseOut
                      animations:^{
-                         self.imageView.frame = imageRect;
-                         self.filterScrollView.frame = sliderScrollFrame;
-                         self.filtersBackgroundImageView.frame = sliderScrollFrameBackground;
-                     } 
+                         [self layoutFilters];
+                     }
                      completion:^(BOOL finished){
                          
                          self.filtersToggleButton.enabled = YES;
@@ -678,7 +770,8 @@
         if(![self.filtersToggleButton isSelected]){
             [self showFilters];
         }
-
+        
+        [self updateImageViewTransform];
     }
 }
 
@@ -693,10 +786,32 @@
     }
 }
 
+- (void)willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
+    [UIView setAnimationsEnabled:NO];
+}
+
+- (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {
+    [UIView setAnimationsEnabled:YES];
+    
+    [self layoutInterface];
+    [self updateImageViewTransform];
+    [UIView animateWithDuration:0.25 animations:^{
+        [self updateButtonsTransform];
+    }];
+}
+
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation {
+    return YES;
+}
+
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
 
+- (BOOL)shouldAutorotate {
+    return YES;
+}
+
 - (NSUInteger)supportedInterfaceOrientations {
-    return UIInterfaceOrientationMaskPortrait;
+    return UIInterfaceOrientationMaskAll;
 }
 
 #endif
