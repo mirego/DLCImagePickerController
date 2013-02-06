@@ -48,6 +48,8 @@
 {
     [super viewDidLoad];
     self.wantsFullScreenLayout = YES;
+    // localized titles
+    [self.retakeButton setTitle:NSLocalizedString(@"Retake", @"DLCImagePickerController retake button title") forState:UIControlStateNormal];
     //set background color
     self.view.backgroundColor = [UIColor colorWithPatternImage:
                                  [UIImage imageNamed:@"micro_carbon"]];
@@ -116,7 +118,7 @@
                    action:@selector(filterClicked:)
          forControlEvents:UIControlEventTouchUpInside];
         button.tag = i;
-        [button setTitle:@"*" forState:UIControlStateSelected];
+        [button setTitle:NSLocalizedString(@"*", @"DLCImagePickerController current filter mark") forState:UIControlStateSelected];
         if(i == 0){
             [button setSelected:YES];
         }
@@ -374,7 +376,7 @@
     
     [self prepareFilter];
     [self.retakeButton setHidden:NO];
-    [self.photoCaptureButton setTitle:@"Done" forState:UIControlStateNormal];
+    [self.photoCaptureButton setTitle:NSLocalizedString(@"Done", @"DLCImagePickerController done button title") forState:UIControlStateNormal];
     [self.photoCaptureButton setImage:nil forState:UIControlStateNormal];
     [self.photoCaptureButton setEnabled:YES];
     if(![self.filtersToggleButton isSelected]){
@@ -670,7 +672,7 @@
         [self.cameraToggleButton setEnabled:NO];
         [self.flashToggleButton setEnabled:NO];
         [self prepareStaticFilter];
-        [self.photoCaptureButton setTitle:@"Done" forState:UIControlStateNormal];
+        [self.photoCaptureButton setTitle:NSLocalizedString(@"Done", @"DLCImagePickerController done button title") forState:UIControlStateNormal];
         [self.photoCaptureButton setImage:nil forState:UIControlStateNormal];
         [self.photoCaptureButton setEnabled:YES];
         if(![self.filtersToggleButton isSelected]){
