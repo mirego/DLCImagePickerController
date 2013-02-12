@@ -9,6 +9,10 @@
 #import "DLCImagePickerController.h"
 #import "GrayscaleContrastFilter.h"
 
+NSString *const DLCImagePickerControllerOutputJPEGDataKey = @"data";
+NSString *const DLCImagePickerControllerOutputOriginalImageKey = @"image_original";
+NSString *const DLCImagePickerControllerOutputEditedImageKey = @"image";
+
 #define kStaticBlurSize 2.0f
 
 @implementation DLCImagePickerController {
@@ -17,6 +21,7 @@
     BOOL isStatic;
     BOOL hasBlur;
     int selectedFilter;
+    UIImage *originalImage;
 }
 
 @synthesize delegate,
@@ -34,13 +39,19 @@
     photoBar,
     topBar,
     blurOverlayView,
-    outputJPEGQuality;
+    outputJPEGQuality,
+    outputJPEGData,
+    outputOriginalImage,
+    outputEditedImage;
 
 -(id) init {
     self = [super initWithNibName:@"DLCImagePicker" bundle:nil];
     
     if (self) {
         self.outputJPEGQuality = 1.0;
+        self.outputJPEGData = YES;
+        self.outputOriginalImage = NO;
+        self.outputEditedImage = NO;
     }
     
     return self;
@@ -496,6 +507,7 @@
     [stillCamera stopCameraCapture];
     [self removeAllTargets];
     
+    originalImage = self.outputOriginalImage ? img : nil;
     staticPicture = [[GPUImagePicture alloc] initWithImage:img
                                        smoothlyScaleOutput:YES];
     
@@ -545,9 +557,18 @@
             UIGraphicsEndImageContext();
         }
         
-        NSDictionary *info = [[NSDictionary alloc] initWithObjectsAndKeys:
-                              image, @"image",
-                              UIImageJPEGRepresentation(image, self.outputJPEGQuality), @"data", nil];
+        NSMutableDictionary *info = [[NSMutableDictionary alloc] init];
+        
+        if (self.outputEditedImage) {
+            [info setValue:image forKey:DLCImagePickerControllerOutputEditedImageKey];
+        }
+        if (self.outputOriginalImage) {
+            [info setValue:originalImage forKey:DLCImagePickerControllerOutputOriginalImageKey];
+        }
+        if (self.outputJPEGData || [info count] == 0) {
+            [info setValue:UIImageJPEGRepresentation(image, self.outputJPEGQuality) forKey:DLCImagePickerControllerOutputJPEGDataKey];
+        }
+
         [self.delegate imagePickerController:self didFinishPickingMediaWithInfo:info];
     }
 }
@@ -789,6 +810,7 @@
     }
     
     if (outputImage) {
+        originalImage = self.outputOriginalImage ? outputImage : nil;
         staticPicture = [[GPUImagePicture alloc] initWithImage:outputImage smoothlyScaleOutput:YES];
         staticPictureOriginalOrientation = outputImage.imageOrientation;
         isStatic = YES;

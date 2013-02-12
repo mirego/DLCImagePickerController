@@ -10,6 +10,10 @@
 #import "GPUImage.h"
 #import "BlurOverlayView.h"
 
+extern NSString *const DLCImagePickerControllerOutputJPEGDataKey;
+extern NSString *const DLCImagePickerControllerOutputOriginalImageKey;
+extern NSString *const DLCImagePickerControllerOutputEditedImageKey;
+
 @class DLCImagePickerController;
 
 @protocol DLCImagePickerDelegate <NSObject>
@@ -48,5 +52,8 @@
 @property (nonatomic, strong) UIImageView *focusView;
 
 @property (nonatomic, assign) CGFloat outputJPEGQuality;
+@property (nonatomic, assign) BOOL outputJPEGData;
+@property (nonatomic, assign) BOOL outputOriginalImage;
+@property (nonatomic, assign) BOOL outputEditedImage;
 
 @end
