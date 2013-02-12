@@ -12,6 +12,8 @@
 #define kStaticBlurSize 2.0f
 
 @implementation DLCImagePickerController {
+    BOOL statusBarHidden;
+    BOOL didSetupCamera;
     BOOL isStatic;
     BOOL hasBlur;
     int selectedFilter;
@@ -103,9 +105,7 @@
     
     filter = [[GPUImageFilter alloc] init];
     
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        [self setUpCamera];
-    });
+    didSetupCamera = NO;
 }
 
 -(void) viewDidLayoutSubviews {
@@ -114,9 +114,38 @@
     [self layoutFilters];
 }
 
+-(void) setStatusBarHidden:(BOOL)hidden {
+    switch (self.modalTransitionStyle) {
+        default:
+        case UIModalTransitionStyleCoverVertical:
+            [[UIApplication sharedApplication] setStatusBarHidden:hidden withAnimation:UIStatusBarAnimationSlide];
+            break;
+        case UIModalTransitionStyleFlipHorizontal:
+            [[UIApplication sharedApplication] setStatusBarHidden:hidden withAnimation:UIStatusBarAnimationNone];
+            break;
+        case UIModalTransitionStyleCrossDissolve:
+            [[UIApplication sharedApplication] setStatusBarHidden:hidden withAnimation:UIStatusBarAnimationFade];
+            break;
+    }
+}
+
 -(void) viewWillAppear:(BOOL)animated {
-    [[UIApplication sharedApplication] setStatusBarHidden:YES withAnimation:UIStatusBarAnimationSlide];
+    statusBarHidden = [[UIApplication sharedApplication] isStatusBarHidden];
+    if (statusBarHidden == NO) {
+        [self setStatusBarHidden:YES];
+    }
     [super viewWillAppear:animated];
+}
+
+-(void) viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    if (didSetupCamera == NO) {
+        didSetupCamera = YES;
+        
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+            [self setUpCamera];
+        });
+    }
 }
 
 -(void) layoutInterface {
@@ -744,7 +773,10 @@
 - (void)viewWillDisappear:(BOOL)animated {
     [stillCamera stopCameraCapture];
     [super viewWillDisappear:animated];
-    [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:NO];
+    
+    if (statusBarHidden == NO) {
+        [self setStatusBarHidden:NO];
+    }
 }
 
 #pragma mark - UIImagePickerDelegate
@@ -778,8 +810,9 @@
 - (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
     if (isStatic) {
         // TODO: fix this hack
-        [self dismissViewControllerAnimated:NO completion:nil];
-        [self.delegate imagePickerControllerDidCancel:self];
+        [self dismissViewControllerAnimated:YES completion:^{
+            [self.delegate imagePickerControllerDidCancel:self];
+        }];
     } else {
         [self dismissViewControllerAnimated:YES completion:nil];
         [self retakePhoto:nil];
